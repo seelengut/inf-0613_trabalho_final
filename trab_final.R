@@ -114,5 +114,18 @@ get_bigrams <- function(headline) {
   return(result)
 }
 
+get_cluster_freq_bigrams <- function(cluster, headlines, n = 3) {
+  clusters <- sort(unique(cluster))
+  result <- list()
+  for (c in clusters) {
+    bigrams <- get_bigram_freq(headlines[as.integer(names(which(cluster == c)))])
+    bigrams <- sort(bigrams, decreasing = TRUE)
+    print(bigrams[1:n])
+    result[[length(result) + 1]] <- names(bigrams[1:n])
+  }
+  return(result)
+}
+
 # Testing bigrams
 bigrams_freq <- sort(get_bigram_freq(as.character(headlines$headline_text)[1:1000]), decreasing = TRUE)
+bigrams_per_cluster <- get_cluster_freq_bigrams(features.sample.kmeans.15$cluster, as.character(headlines$headline_text))
