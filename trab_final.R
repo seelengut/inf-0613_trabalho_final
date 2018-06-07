@@ -5,16 +5,19 @@
 ########################################
 
 # Libraries
-# install.packages(c('cluster', 'NLP', 'e1071'))
+# install.packages(c('cluster', 'NLP', 'e1071', 'flexclust'))
 library(cluster)
 library(NLP)
 library(e1071)
+library(flexclust)
 
 # Set Working Dir
 setwd("/Users/wfr005/work/courses/inf-0613/t_final")
 
 # Increase max print
 options(max.print=10000)
+
+# Load csv files
 features <- read.csv("features.csv", header = TRUE, sep = ",")
 headlines <- read.csv("headlines.csv", header = TRUE, sep = ",")
 
@@ -72,7 +75,7 @@ features.sample.cmeans.5 <- cmeans(features.sample.pca$x[,1:1390], 5, m = 2)
 features.sample.cmeans.10 <- cmeans(features.sample.pca$x[,1:1390], 10, m = 2)
 features.sample.cmeans.15 <- cmeans(features.sample.pca$x[,1:1390], 15, m = 2)
 features.sample.cmeans.20 <- cmeans(features.sample.pca$x[,1:1390], 20, m = 2)
-# k-medians silhouette
+# Fuzzy c-means silhouette
 features.sample.cmeans.5.sil <- silhouette(features.sample.cmeans.5$cluster, features.sample.pca.dist)
 features.sample.cmeans.10.sil <- silhouette(features.sample.cmeans.10$cluster, features.sample.pca.dist)
 features.sample.cmeans.15.sil <- silhouette(features.sample.cmeans.15$cluster, features.sample.pca.dist)
@@ -120,12 +123,25 @@ get_cluster_freq_bigrams <- function(cluster, headlines, n = 3) {
   for (c in clusters) {
     bigrams <- get_bigram_freq(headlines[as.integer(names(which(cluster == c)))])
     bigrams <- sort(bigrams, decreasing = TRUE)
-    print(bigrams[1:n])
     result[[length(result) + 1]] <- names(bigrams[1:n])
   }
   return(result)
 }
 
-# Testing bigrams
-bigrams_freq <- sort(get_bigram_freq(as.character(headlines$headline_text)[1:1000]), decreasing = TRUE)
-bigrams_per_cluster <- get_cluster_freq_bigrams(features.sample.kmeans.15$cluster, as.character(headlines$headline_text))
+# k-means bigrams
+features.sample.kmeans.5.bigrams <- get_cluster_freq_bigrams(features.sample.kmeans.5$cluster, as.character(headlines$headline_text))
+features.sample.kmeans.10.bigrams <- get_cluster_freq_bigrams(features.sample.kmeans.10$cluster, as.character(headlines$headline_text))
+features.sample.kmeans.15.bigrams <- get_cluster_freq_bigrams(features.sample.kmeans.15$cluster, as.character(headlines$headline_text))
+features.sample.kmeans.20.bigrams <- get_cluster_freq_bigrams(features.sample.kmeans.20$cluster, as.character(headlines$headline_text))
+
+# k-medians bigrams
+features.sample.kmedians.5.bigrams <- get_cluster_freq_bigrams(clusters(features.sample.kmedians.5), as.character(headlines$headline_text))
+features.sample.kmedians.10.bigrams <- get_cluster_freq_bigrams(clusters(features.sample.kmedians.10), as.character(headlines$headline_text))
+features.sample.kmedians.15.bigrams <- get_cluster_freq_bigrams(clusters(features.sample.kmedians.15), as.character(headlines$headline_text))
+features.sample.kmedians.20.bigrams <- get_cluster_freq_bigrams(clusters(features.sample.kmedians.20), as.character(headlines$headline_text))
+
+# Fuzzy c-means bigrams
+features.sample.cmeans.5.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.10.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.15.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.20.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
