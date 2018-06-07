@@ -17,6 +17,7 @@ setwd("/Users/wfr005/work/courses/inf-0613/t_final")
 options(max.print=10000)
 features <- read.csv("features.csv", header = TRUE, sep = ",")
 headlines <- read.csv("headlines.csv", header = TRUE, sep = ",")
+headlines$publish_date <- strptime(headlines$publish_date, "%Y%m%d")
 
 # Apply PCA with scale
 # 85% - 1654
