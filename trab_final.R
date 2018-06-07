@@ -12,7 +12,7 @@ library(e1071)
 library(flexclust)
 
 # Set Working Dir
-setwd("/Users/wfr005/work/courses/inf-0613/t_final")
+# setwd("/Users/wfr005/work/courses/inf-0613/t_final")
 
 # Increase max print
 options(max.print=10000)
@@ -34,16 +34,20 @@ features.pca.summary <- summary(features.pca)
 features.pca2 <- prcomp(features, scale. = FALSE)
 features.pca2.summary <- summary(features.pca2)
 
+# PCA with scale - 85%
+features.pc.choice <- 1654
+
 # Sampling data to develop solution - only 10% of rows - comment to have full results
-set.seed(42); features.sample <- features[sample(1:nrow(features), nrow(features) * 0.1, replace = FALSE),]
+set.seed(42); 
+features.sample <- features[sample(1:nrow(features), nrow(features) * 0.1, replace = FALSE),]
 features.sample.pca <- prcomp(features.sample, scale. = FALSE)
-features.sample.pca.dist <- dist(features.sample.pca$x[,1:1390])
+features.sample.pca.dist <- dist(features.sample.pca$x[,1:features.pc.choice])
 
 # k-means clustering
-features.sample.kmeans.5 <- kmeans(features.sample.pca$x[,1:1390], 5, nstart = 20)
-features.sample.kmeans.10 <- kmeans(features.sample.pca$x[,1:1390], 10, nstart = 20)
-features.sample.kmeans.15 <- kmeans(features.sample.pca$x[,1:1390], 15, nstart = 20)
-features.sample.kmeans.20 <- kmeans(features.sample.pca$x[,1:1390], 20, nstart = 20)
+features.sample.kmeans.5 <- kmeans(features.sample.pca$x[,1:features.pc.choice], 5, nstart = 20)
+features.sample.kmeans.10 <- kmeans(features.sample.pca$x[,1:features.pc.choice], 10, nstart = 20)
+features.sample.kmeans.15 <- kmeans(features.sample.pca$x[,1:features.pc.choice], 15, nstart = 20)
+features.sample.kmeans.20 <- kmeans(features.sample.pca$x[,1:features.pc.choice], 20, nstart = 20)
 # k-means silhouette
 features.sample.kmeans.5.sil <- silhouette(features.sample.kmeans.5$cluster, features.sample.pca.dist)
 features.sample.kmeans.10.sil <- silhouette(features.sample.kmeans.10$cluster, features.sample.pca.dist)
@@ -56,10 +60,10 @@ mean(features.sample.kmeans.15.sil[,3])
 mean(features.sample.kmeans.20.sil[,3])
 
 # k-medians
-features.sample.kmedians.5 <- kcca(features.sample.pca$x[,1:1390], 5, family=kccaFamily("kmedians"))
-features.sample.kmedians.10 <- kcca(features.sample.pca$x[,1:1390], 10, family=kccaFamily("kmedians"))
-features.sample.kmedians.15 <- kcca(features.sample.pca$x[,1:1390], 15, family=kccaFamily("kmedians"))
-features.sample.kmedians.20 <- kcca(features.sample.pca$x[,1:1390], 20, family=kccaFamily("kmedians"))
+features.sample.kmedians.5 <- kcca(features.sample.pca$x[,1:features.pc.choice], 5, family=kccaFamily("kmedians"))
+features.sample.kmedians.10 <- kcca(features.sample.pca$x[,1:features.pc.choice], 10, family=kccaFamily("kmedians"))
+features.sample.kmedians.15 <- kcca(features.sample.pca$x[,1:features.pc.choice], 15, family=kccaFamily("kmedians"))
+features.sample.kmedians.20 <- kcca(features.sample.pca$x[,1:features.pc.choice], 20, family=kccaFamily("kmedians"))
 # k-medians silhouette
 features.sample.kmedians.5.sil <- silhouette(clusters(features.sample.kmedians.5), features.sample.pca.dist)
 features.sample.kmedians.10.sil <- silhouette(clusters(features.sample.kmedians.10), features.sample.pca.dist)
@@ -72,10 +76,10 @@ summary(features.sample.kmedians.15.sil)$avg.width
 summary(features.sample.kmedians.20.sil)$avg.width
 
 # Fuzzy c-means
-features.sample.cmeans.5 <- cmeans(features.sample.pca$x[,1:1390], 5, m = 2)
-features.sample.cmeans.10 <- cmeans(features.sample.pca$x[,1:1390], 10, m = 2)
-features.sample.cmeans.15 <- cmeans(features.sample.pca$x[,1:1390], 15, m = 2)
-features.sample.cmeans.20 <- cmeans(features.sample.pca$x[,1:1390], 20, m = 2)
+features.sample.cmeans.5 <- cmeans(features.sample.pca$x[,1:features.pc.choice], 5, m = 2)
+features.sample.cmeans.10 <- cmeans(features.sample.pca$x[,1:features.pc.choice], 10, m = 2)
+features.sample.cmeans.15 <- cmeans(features.sample.pca$x[,1:features.pc.choice], 15, m = 2)
+features.sample.cmeans.20 <- cmeans(features.sample.pca$x[,1:features.pc.choice], 20, m = 2)
 # Fuzzy c-means silhouette
 features.sample.cmeans.5.sil <- silhouette(features.sample.cmeans.5$cluster, features.sample.pca.dist)
 features.sample.cmeans.10.sil <- silhouette(features.sample.cmeans.10$cluster, features.sample.pca.dist)
@@ -146,3 +150,33 @@ features.sample.cmeans.5.bigrams <- get_cluster_freq_bigrams(features.sample.cme
 features.sample.cmeans.10.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.10$cluster, as.character(headlines$headline_text))
 features.sample.cmeans.15.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.15$cluster, as.character(headlines$headline_text))
 features.sample.cmeans.20.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.20$cluster, as.character(headlines$headline_text))
+
+
+## 2016 Dataset
+features.2016.pca <- prcomp(features[headlines$publish_date$year + 1900 == 2016, ], scale. = FALSE) # can't scale
+features.2016.pca.summary <- summary(features.2016.pca)
+# 85% - PC 919
+# 90% - PC 1084
+features.2016.pc.choice <- 919
+features.2016.pca.dist <- dist(features.2016.pca$x[, 1:features.2016.pc.choice])
+
+# 2016 k-means clustering
+features.2016.kmeans.5 <- kmeans(features.2016.pca$x[, 1:features.2016.pc.choice], 5, nstart = 20)
+features.2016.kmeans.10 <- kmeans(features.2016.pca$x[, 1:features.2016.pc.choice], 10, nstart = 20)
+features.2016.kmeans.15 <- kmeans(features.2016.pca$x[, 1:features.2016.pc.choice], 15, nstart = 20)
+features.2016.kmeans.20 <- kmeans(features.2016.pca$x[, 1:features.2016.pc.choice], 20, nstart = 20)
+# 2016 k-means silhouette
+features.2016.kmeans.5.sil <- silhouette(features.2016.kmeans.5$cluster, features.2016.pca.dist)
+features.2016.kmeans.10.sil <- silhouette(features.2016.kmeans.10$cluster, features.2016.pca.dist)
+features.2016.kmeans.15.sil <- silhouette(features.2016.kmeans.15$cluster, features.2016.pca.dist)
+features.2016.kmeans.20.sil <- silhouette(features.2016.kmeans.20$cluster, features.2016.pca.dist)
+# 2016 AVG
+summary(features.2016.kmeans.5.sil)$avg.width
+summary(features.2016.kmeans.10.sil)$avg.width
+summary(features.2016.kmeans.15.sil)$avg.width
+summary(features.2016.kmeans.20.sil)$avg.width
+# k-means bigrams
+features.2016.kmeans.5.bigrams <- get_cluster_freq_bigrams(features.2016.kmeans.5$cluster, as.character(headlines$headline_text))
+features.2016.kmeans.10.bigrams <- get_cluster_freq_bigrams(features.2016.kmeans.10$cluster, as.character(headlines$headline_text))
+features.2016.kmeans.15.bigrams <- get_cluster_freq_bigrams(features.2016.kmeans.15$cluster, as.character(headlines$headline_text))
+features.2016.kmeans.20.bigrams <- get_cluster_freq_bigrams(features.2016.kmeans.20$cluster, as.character(headlines$headline_text))
