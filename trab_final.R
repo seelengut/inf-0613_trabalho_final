@@ -142,6 +142,6 @@ features.sample.kmedians.20.bigrams <- get_cluster_freq_bigrams(clusters(feature
 
 # Fuzzy c-means bigrams
 features.sample.cmeans.5.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
-features.sample.cmeans.10.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
-features.sample.cmeans.15.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
-features.sample.cmeans.20.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.5$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.10.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.10$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.15.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.15$cluster, as.character(headlines$headline_text))
+features.sample.cmeans.20.bigrams <- get_cluster_freq_bigrams(features.sample.cmeans.20$cluster, as.character(headlines$headline_text))
