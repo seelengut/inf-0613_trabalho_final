@@ -34,8 +34,8 @@ features.pca.summary <- summary(features.pca)
 features.pca2 <- prcomp(features, scale. = FALSE)
 features.pca2.summary <- summary(features.pca2)
 
-# PCA with scale - 85%
-features.pc.choice <- 1654
+# PC choice
+features.pc.choice <- 1390
 
 # Sampling data to develop solution - only 10% of rows - comment to have full results
 set.seed(42); 
