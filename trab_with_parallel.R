@@ -23,24 +23,6 @@ features <- read.csv("features.csv", header = TRUE, sep = ",")
 headlines <- read.csv("headlines.csv", header = TRUE, sep = ",")
 headlines$publish_date <- strptime(headlines$publish_date, "%Y%m%d")
 
-pca  <- mcparallel(prcomp(features, scale. = TRUE))
-pca2 <- mcparallel(prcomp(features, scale. = FALSE))
-
-features.pca  <- mccollect(pca)[[1]]
-features.pca2 <- mccollect(pca2)[[1]]
-
-# Apply PCA with scale
-# 85% - 1654
-# 90% - 1804
-features.pca.summary <- summary(features.pca)
-# Apply PCA without scale
-# 85% - 1390
-# 90% - 1598
-features.pca2.summary <- summary(features.pca2)
-
-# PCA with scale - 85%
-features.pc.choice <- 1390
-
 # Bigrams calculation
 get_bigram_freq <- function(headlines) {
   # acquire all possible bigrams
@@ -93,10 +75,13 @@ add <- function(list, v) {
   return(c(list,l))
 }
 
-run_analysis <- function(features, headlines, pc, sc) {
+run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   r <- list()
 
-  features.pca <- prcomp(features, scale. = sc)
+  if (is.null(features.pca)) {
+    features.pca <- prcomp(features, scale. = sc)    
+  }
+  
   features.pca.dist <- dist(features.pca$x[,1:pc])
   r <- add(r, features.pca)
   r <- add(r, features.pca.dist)
@@ -229,14 +214,47 @@ run_analysis <- function(features, headlines, pc, sc) {
   return(r)
 }
 
+
+# 2016 data set
+features.2016 <- features[headlines$publish_date$year + 1900 == 2016, ]
+
+features.scaled.pca <- mcparallel(prcomp(features, scale. = TRUE))
+features.nonscaled.pca <- mcparallel(prcomp(features, scale. = FALSE))
+features.2016.pca <- mcparallel(prcomp(features.2016, scale. = FALSE))
+
+pca <- list()
+pca <- add(pca, features.scaled.pca)
+pca <- add(pca, features.nonscaled.pca)
+pca <- add(pca, features.2016.pca)
+
+# Summary PCA with scale
+# 85% - 1654
+# 90% - 1804
+pca$features.scaled.pca.summary <- summary(pca$features.scaled.pca)
+pca$features.scaled.pc.choice <- 1654
+
+# Summary PCA without scale
+# 85% - 1390
+# 90% - 1598
+pca$features.nonscaled.pca.summary <- summary(pca$features.nonscaled.pca)
+pca$features.nonscaled.pc.choice <- 1390
+
+# Summary 2016 PCA without scale
+# 85% - PC 919
+# 90% - PC 1084
+pca$features.2016.pca.summary <- summary(pca$features.2016.pca)
+pca$features.2016.pc.choice <- 919
+
 # Sampling data to develop solution - only 10% of rows - comment to have full results
 set.seed(42);
 features.sample <- features[sample(1:nrow(features), nrow(features) * 0.08, replace = FALSE),]
-r.sample <- run_analysis(features.sample, headlines, features.pc.choice, FALSE)
+r.sample <- run_analysis(features.sample, headlines, pca$features.nonscaled.pc.choice, FALSE, pca$features.nonscaled.pca)
 
-## 2016 Dataset
-# 85% - PC 919
-# 90% - PC 1084
-features.2016.pc.choice <- 919
-features.2016 <- features[headlines$publish_date$year + 1900 == 2016, ]
-r.2016 <- run_analysis(features.2016, headlines, features.2016.pc.choice, FALSE)
+# Analyze complete set non scaled
+r.nonscaled <- run_analysis(features, headlines, pca$features.nonscaled.pc.choice, FALSE, pca$features.nonscaled.pca)
+
+# Analyze complete set scaled
+r.scaled<- run_analysis(features, headlines, pca$features.scaled.pc.choice, TRUE, pca$features.scaled.pca)
+
+## Analyze 2016 set
+r.2016 <- run_analysis(features.2016, headlines, pca$features.2016.pc.choice, FALSE, pca$features.2016.pca)
