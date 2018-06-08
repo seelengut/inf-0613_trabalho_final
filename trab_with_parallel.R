@@ -11,6 +11,7 @@ library(NLP)
 library(e1071)
 library(flexclust)
 library(parallel)
+library(ggplot2)
 
 # Set Working Dir
 # setwd("/Users/wfr005/work/courses/inf-0613/t_final")
@@ -258,3 +259,103 @@ r.scaled<- run_analysis(features, headlines, pca$features.scaled.pc.choice, TRUE
 
 ## Analyze 2016 set
 r.2016 <- run_analysis(features.2016, headlines, pca$features.2016.pc.choice, FALSE, pca$features.2016.pca)
+
+
+
+# Silhouette graph
+graph.kmeans.nscaled.sil <- c(r.nonscaled$features.kmeans.5.sil, r.nonscaled$features.kmeans.10.sil,
+                              r.nonscaled$features.kmeans.15.sil, r.nonscaled$features.kmeans.20.sil)
+
+graph.kmeans.scaled.sil <- c(r.scaled$features.kmeans.5.sil, r.scaled$features.kmeans.10.sil,
+                             r.scaled$features.kmeans.15.sil, r.scaled$features.kmeans.20.sil)
+
+graph.kmedians.nscaled.sil <- c(r.nonscaled$features.kmedians.5.sil, r.nonscaled$features.kmedians.10.sil,
+                                r.nonscaled$features.kmedians.15.sil, r.nonscaled$features.kmedians.20.sil)
+
+graph.kmedians.scaled.sil <- c(r.scaled$features.kmedians.5.sil, r.scaled$features.kmedians.10.sil,
+                               r.scaled$features.kmedians.15.sil, r.scaled$features.kmedians.20.sil)
+
+graph.kmedians.nscaled.sil <- c(r.nonscaled$features.kmedians.5.sil, r.nonscaled$features.kmedians.10.sil,
+                                r.nonscaled$features.kmedians.15.sil, r.nonscaled$features.kmedians.20.sil)
+
+graph.kmedians.scaled.sil <- c(r.scaled$features.kmedians.5.sil, r.scaled$features.kmedians.10.sil,
+                               r.scaled$features.kmedians.15.sil, r.scaled$features.kmedians.20.sil)
+
+graph.cmeans.nscaled.sil <- c(r.nonscaled$features.cmeans.5.sil, r.nonscaled$features.cmeans.10.sil,
+                              r.nonscaled$features.cmeans.15.sil, r.nonscaled$features.cmeans.20.sil)
+
+graph.cmeans.scaled.sil <- c(r.scaled$features.cmeans.5.sil, r.scaled$features.cmeans.10.sil,
+                             r.scaled$features.cmeans.15.sil, r.scaled$features.cmeans.20.sil)
+
+
+
+graph.sil.data <- c(graph.kmeans.nscaled.sil, graph.kmeans.scaled.sil,
+                    graph.kmedians.nscaled.sil, graph.kmedians.scaled.sil,
+                    graph.cmeans.nscaled.sil, graph.cmeans.scaled.sil)
+
+graph.sil.keys <- rep(c('kmeans - non scaled', 'kmeans - scaled', 
+                        'kmedians - non scaled', 'kmedians - scaled',
+                        'fuzzy cmeans - scaled', 'fuzzy cmeans - non scaled'), times=1, each=4)
+
+
+
+graph.sil.dframe <- data.frame(clusters=c(5,10,15,20), silhouette=graph.sil.data, keys=graph.sil.keys)
+g <- ggplot(data = graph.sil.dframe , aes(x=clusters, y=silhouette, colour=keys))
+g <- g + geom_point() + geom_line()
+g <- g + labs(title="Variação da Silhueta x Número de Clusters", y="Silhueta", x="Total de Clusters", colour="")
+g <- g + theme(plot.title = element_text(hjust = 0.5, size = 18),
+               axis.text = element_text(size=12),
+               axis.title = element_text(size=16),
+               legend.text = element_text(size=12),
+               legend.position = "bottom")
+g
+
+# Quadractic error graph
+get_kmeans_error_data <- function(data) {
+  totss <- c(data$features.kmeans.5$totss, data$features.kmeans.10$totss,
+                                  data$features.kmeans.15$totss, data$features.kmeans.20$totss)
+  betweenss <- c(data$features.kmeans.5$betweenss, data$features.kmeans.10$betweenss,
+                                      data$features.kmeans.15$betweenss, data$features.kmeans.20$betweenss)
+  withinss <- c(data$features.kmeans.5$tot.withinss, data$features.kmeans.10$tot.withinss,
+                                     data$features.kmeans.15$tot.withinss, data$features.kmeans.20$tot.withinss)
+  betss_div_totss <- betweenss / totss
+  return(data.frame(betss_div_totss, withinss ))
+}
+
+get_kcca_error_data <- function(data) {
+  totss <- c(data$features.kmeans.5$totss, data$features.kmeans.10$totss,
+             data$features.kmeans.15$totss, data$features.kmeans.20$totss)
+  betweenss <- c(data$features.kmeans.5$betweenss, data$features.kmeans.10$betweenss,
+                 data$features.kmeans.15$betweenss, data$features.kmeans.20$betweenss)
+  withinss <- c(info(data$features.kmedians.5, "distsum"), info(data$features.kmedians.10, "distsum"),
+                info(data$features.kmedians.15, "distsum"), info(data$features.kmedians.20, "distsum"))
+  betss_div_totss <- betweenss / totss
+  return(data.frame(betss_div_totss, withinss ))
+}
+
+graph.kmeans.nscaled.error <- get_kmeans_error_data(r.nonscaled)
+graph.kmeans.scaled.error  <- get_kmeans_error_data(r.scaled)
+
+graph.kmeans.nscaled.totss <- c(r.nonscaled$features.kmeans.5$totss, r.nonscaled$features.kmeans.10$totss,
+                                r.nonscaled$features.kmeans.15$totss, r.nonscaled$features.kmeans.20$totss)
+graph.kmeans.nscaled.betweenss <- c(r.nonscaled$features.kmeans.5$betweenss, r.nonscaled$features.kmeans.10$betweenss,
+                                    r.nonscaled$features.kmeans.15$betweenss, r.nonscaled$features.kmeans.20$betweenss)
+graph.kmeans.nscaled.withinss <- c(r.nonscaled$features.kmeans.5$tot.withinss, r.nonscaled$features.kmeans.10$tot.withinss,
+                                    r.nonscaled$features.kmeans.15$tot.withinss, r.nonscaled$features.kmeans.20$tot.withinss)
+graph.kmeans.nscaled.betss_div_totss <- graph.kmeans.nscaled.betweenss / graph.kmeans.nscaled.totss
+
+
+
+graph.kmeans.scaled.totss <- c(r.scaled$features.kmeans.5$totss, r.scaled$features.kmeans.10$totss,
+                                r.scaled$features.kmeans.15$totss, r.scaled$features.kmeans.20$totss)
+graph.kmeans.scaled.betweenss <- c(r.scaled$features.kmeans.5$tot.betweenss, r.scaled$features.kmeans.10$tot.betweenss,
+                                    r.scaled$features.kmeans.15$tot.betweenss, r.scaled$features.kmeans.20$tot.betweenss)
+
+graph.kmedians.nscaled.totss <- c(info(r.scaled$features.kmedians.5, "distsum"), info(r.scaled$features.kmedians.5, "distsum"),
+                                  info(r.scaled$features.kmedians.5, "distsum"), info(r.scaled$features.kmedians.5, "distsum"))
+graph.kmedians.nscaled.betweenss <- c(r.nonscaled$features.kmeans.5$tot.betweenss, r.nonscaled$features.kmeans.10$tot.betweenss,
+                                    r.nonscaled$features.kmeans.15$tot.betweenss, r.nonscaled$features.kmeans.20$tot.betweenss)
+
+
+
+info(r.scaled$features.kmedians.5, "distsum")
