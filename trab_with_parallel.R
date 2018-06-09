@@ -306,8 +306,18 @@ get_kcca_error_data <- function(data) {
   return(data.frame(betss_div_totss, withinss ))
 }
 
+get_cmeans_error_data <- function(data) {
+  withinss <- c(data$features.cmeans.5$withinerror, data$features.cmeans.10$withinerror,
+                data$features.cmeans.15$withinerror, data$features.cmeans.20$withinerror)
+  betss_div_totss <- 0
+  return(data.frame(betss_div_totss, withinss ))
+}
+
 graph.kmeans.nscaled.error <- get_kmeans_error_data(r.nonscaled)
 graph.kmeans.scaled.error  <- get_kmeans_error_data(r.scaled)
 
 graph.kmedians.nscaled.error <- get_kcca_error_data(r.nonscaled)
-graph.kmedians.nscaled.error <- get_kcca_error_data(r.scaled)
+graph.kmedians.scaled.error <- get_kcca_error_data(r.scaled)
+
+graph.cmeans.nscaled.error <- get_cmeans_error_data(r.nonscaled)
+graph.cmeans.scaled.error <- get_cmeans_error_data(r.scaled)
