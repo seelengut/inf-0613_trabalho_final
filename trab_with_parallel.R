@@ -27,21 +27,32 @@ headlines$publish_date <- strptime(headlines$publish_date, "%Y%m%d")
 # Bigrams calculation
 get_bigram_freq <- function(headlines) {
   # acquire all possible bigrams
+  print("calc all bigrams")
   all_bigrams <- c()
   for (headline in headlines) {
     all_bigrams <- c(all_bigrams, get_bigrams(headline))
   }
+  print("calc unique bigrams")
   unique_bigrams <- unique(all_bigrams)
   
   # Named vector to count bigrams frequency
   result <- rep(0, length(unique_bigrams))
   names(result) <- unique_bigrams
-  
   # Count bigrams occurrence
-  for (bigram in all_bigrams) {
-    result[bigram] = result[bigram] + 1
-  }
+  print(length(all_bigrams))
   
+  r1 <- mcparallel(sum_bigrams(result, unique_bigrams[1:(length(unique_bigrams)/2)], all_bigrams))
+  r2 <- mcparallel(sum_bigrams(result, unique_bigrams[(length(unique_bigrams)/2 + 1):length(unique_bigrams)], all_bigrams))
+  
+  result <- c(mccollect(r1)[[1]], mccollect(r2)[[1]])
+  return(result)
+}
+
+sum_bigrams <- function(result, unique_bigrams, all_bigrams) {
+  print("calc sum of bigrams")
+  for (bigram in unique_bigrams) {
+    result[bigram] <- sum(bigram == all_bigrams)
+  }
   return(result)
 }
 
@@ -59,8 +70,10 @@ get_cluster_freq_bigrams <- function(cluster, headlines, n = 3) {
   clusters <- sort(unique(cluster))
   result <- list()
   for (c in clusters) {
-    bigrams <- get_bigram_freq(headlines[as.integer(names(which(cluster == c)))])
+    print(headlines[cluster == c])
+    bigrams <- get_bigram_freq(headlines[cluster == c])
     bigrams <- sort(bigrams, decreasing = TRUE)
+    # print(bigrams)
     result[[length(result) + 1]] <- names(bigrams[1:n])
   }
   return(result)
@@ -92,10 +105,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmeans.10 <- mcparallel(kmeans(r$features.pca$x[,1:pc], 10, nstart = 20))
   features.kmeans.15 <- mcparallel(kmeans(r$features.pca$x[,1:pc], 15, nstart = 20))
   features.kmeans.20 <- mcparallel(kmeans(r$features.pca$x[,1:pc], 20, nstart = 20))
-  #features.kmeans.5 <- kmeans(features.pca$x[,1:features.pc.choice], 5, nstart = 20)
-  #features.kmeans.10 <- kmeans(features.pca$x[,1:features.pc.choice], 10, nstart = 20)
-  #features.kmeans.15 <- kmeans(features.pca$x[,1:features.pc.choice], 15, nstart = 20)
-  #features.kmeans.20 <- kmeans(features.pca$x[,1:features.pc.choice], 20, nstart = 20)
   r <- add(r, features.kmeans.5)
   r <- add(r, features.kmeans.10)
   r <- add(r, features.kmeans.15)
@@ -106,10 +115,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmeans.10.sil <- mcparallel(mean(silhouette(r$features.kmeans.10$cluster, r$features.pca.dist)[,3]))
   features.kmeans.15.sil <- mcparallel(mean(silhouette(r$features.kmeans.15$cluster, r$features.pca.dist)[,3]))
   features.kmeans.20.sil <- mcparallel(mean(silhouette(r$features.kmeans.20$cluster, r$features.pca.dist)[,3]))
-  #features.kmeans.5.sil <- silhouette(features.kmeans.5$cluster, features.pca.dist)
-  #features.kmeans.10.sil <- silhouette(features.kmeans.10$cluster, features.pca.dist)
-  #features.kmeans.15.sil <- silhouette(features.kmeans.15$cluster, features.pca.dist)
-  #features.kmeans.20.sil <- silhouette(features.kmeans.20$cluster, features.pca.dist)
   r <- add(r, features.kmeans.5.sil)
   r <- add(r, features.kmeans.10.sil)
   r <- add(r, features.kmeans.15.sil)
@@ -120,10 +125,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmedians.10 <- mcparallel(kcca(r$features.pca$x[,1:pc], 10, family=kccaFamily("kmedians")))
   features.kmedians.15 <- mcparallel(kcca(r$features.pca$x[,1:pc], 15, family=kccaFamily("kmedians")))
   features.kmedians.20 <- mcparallel(kcca(r$features.pca$x[,1:pc], 20, family=kccaFamily("kmedians")))
-  #features.kmedians.5 <- kcca(features.pca$x[,1:pc], 5, family=kccaFamily("kmedians"))
-  #features.kmedians.10 <- kcca(features.pca$x[,1:pc], 10, family=kccaFamily("kmedians"))
-  #features.kmedians.15 <- kcca(features.pca$x[,1:pc], 15, family=kccaFamily("kmedians"))
-  #features.kmedians.20 <- kcca(features.pca$x[,1:pc], 20, family=kccaFamily("kmedians"))
   r <- add(r, features.kmedians.5)
   r <- add(r, features.kmedians.10)
   r <- add(r, features.kmedians.15)
@@ -134,10 +135,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmedians.10.sil <- mcparallel(summary(silhouette(clusters(r$features.kmedians.10), r$features.pca.dist))$avg.width)
   features.kmedians.15.sil <- mcparallel(summary(silhouette(clusters(r$features.kmedians.15), r$features.pca.dist))$avg.width)
   features.kmedians.20.sil <- mcparallel(summary(silhouette(clusters(r$features.kmedians.20), r$features.pca.dist))$avg.width)
-  #features.kmedians.5.sil <- silhouette(clusters(features.kmedians.5), features.pca.dist)
-  #features.kmedians.10.sil <- silhouette(clusters(features.kmedians.10), features.pca.dist)
-  #features.kmedians.15.sil <- silhouette(clusters(features.kmedians.15), features.pca.dist)
-  #features.kmedians.20.sil <- silhouette(clusters(features.kmedians.20), features.pca.dist)
   r <- add(r, features.kmedians.5.sil)
   r <- add(r, features.kmedians.10.sil)
   r <- add(r, features.kmedians.15.sil)
@@ -148,10 +145,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.cmeans.10 <- mcparallel(cmeans(r$features.pca$x[,1:pc], 10, m = 2))
   features.cmeans.15 <- mcparallel(cmeans(r$features.pca$x[,1:pc], 15, m = 2))
   features.cmeans.20 <- mcparallel(cmeans(r$features.pca$x[,1:pc], 20, m = 2))
-  #features.cmeans.5 <- cmeans(features.pca$x[,1:pc], 5, m = 2)
-  #features.cmeans.10 <- cmeans(features.pca$x[,1:pc], 10, m = 2)
-  #features.cmeans.15 <- cmeans(features.pca$x[,1:pc], 15, m = 2)
-  #features.cmeans.20 <- cmeans(features.pca$x[,1:pc], 20, m = 2)
   r <- add(r, features.cmeans.5)
   r <- add(r, features.cmeans.10)
   r <- add(r, features.cmeans.15)
@@ -162,10 +155,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.cmeans.10.sil <- mcparallel(summary(silhouette(r$features.cmeans.5$cluster, r$features.pca.dist))$avg.width)
   features.cmeans.15.sil <- mcparallel(summary(silhouette(r$features.cmeans.5$cluster, r$features.pca.dist))$avg.width)
   features.cmeans.20.sil <- mcparallel(summary(silhouette(r$features.cmeans.5$cluster, r$features.pca.dist))$avg.width)
-  #features.cmeans.5.sil <- silhouette(features.cmeans.5$cluster, features.pca.dist)
-  #features.cmeans.10.sil <- silhouette(features.cmeans.10$cluster, features.pca.dist)
-  #features.cmeans.15.sil <- silhouette(features.cmeans.15$cluster, features.pca.dist)
-  #features.cmeans.20.sil <- silhouette(features.cmeans.20$cluster, features.pca.dist)
   r <- add(r, features.cmeans.5.sil)
   r <- add(r, features.cmeans.10.sil)
   r <- add(r, features.cmeans.15.sil)
@@ -176,10 +165,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmeans.10.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.kmeans.10$cluster, as.character(headlines$headline_text)))
   features.kmeans.15.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.kmeans.15$cluster, as.character(headlines$headline_text)))
   features.kmeans.20.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.kmeans.20$cluster, as.character(headlines$headline_text)))
-  #features.kmeans.5.bigrams <- get_cluster_freq_bigrams(features.kmeans.5$cluster, as.character(headlines$headline_text))
-  #features.kmeans.10.bigrams <- get_cluster_freq_bigrams(features.kmeans.10$cluster, as.character(headlines$headline_text))
-  #features.kmeans.15.bigrams <- get_cluster_freq_bigrams(features.kmeans.15$cluster, as.character(headlines$headline_text))
-  #features.kmeans.20.bigrams <- get_cluster_freq_bigrams(features.kmeans.20$cluster, as.character(headlines$headline_text))
   r <- add(r, features.kmeans.5.bigrams)
   r <- add(r, features.kmeans.10.bigrams)
   r <- add(r, features.kmeans.15.bigrams)
@@ -190,10 +175,6 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.kmedians.10.bigrams <- mcparallel(get_cluster_freq_bigrams(clusters(r$features.kmedians.10), as.character(headlines$headline_text)))
   features.kmedians.15.bigrams <- mcparallel(get_cluster_freq_bigrams(clusters(r$features.kmedians.15), as.character(headlines$headline_text)))
   features.kmedians.20.bigrams <- mcparallel(get_cluster_freq_bigrams(clusters(r$features.kmedians.20), as.character(headlines$headline_text)))
-  #features.kmedians.5.bigrams <- get_cluster_freq_bigrams(clusters(features.kmedians.5), as.character(headlines$headline_text))
-  #features.kmedians.10.bigrams <- get_cluster_freq_bigrams(clusters(features.kmedians.10), as.character(headlines$headline_text))
-  #features.kmedians.15.bigrams <- get_cluster_freq_bigrams(clusters(features.kmedians.15), as.character(headlines$headline_text))
-  #features.kmedians.20.bigrams <- get_cluster_freq_bigrams(clusters(features.kmedians.20), as.character(headlines$headline_text))
   r <- add(r, features.kmedians.5.bigrams)
   r <- add(r, features.kmedians.10.bigrams)
   r <- add(r, features.kmedians.15.bigrams)
@@ -204,17 +185,12 @@ run_analysis <- function(features, headlines, pc, sc, features.pca = NULL) {
   features.cmeans.10.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.cmeans.10$cluster, as.character(headlines$headline_text)))
   features.cmeans.15.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.cmeans.15$cluster, as.character(headlines$headline_text)))
   features.cmeans.20.bigrams <- mcparallel(get_cluster_freq_bigrams(r$features.cmeans.20$cluster, as.character(headlines$headline_text)))
-  #features.cmeans.5.bigrams <- get_cluster_freq_bigrams(features.cmeans.5$cluster, as.character(headlines$headline_text))
-  #features.cmeans.10.bigrams <- get_cluster_freq_bigrams(features.cmeans.10$cluster, as.character(headlines$headline_text))
-  #features.cmeans.15.bigrams <- get_cluster_freq_bigrams(features.cmeans.15$cluster, as.character(headlines$headline_text))
-  #features.cmeans.20.bigrams <- get_cluster_freq_bigrams(features.cmeans.20$cluster, as.character(headlines$headline_text))
   r <- add(r, features.cmeans.5.bigrams)
   r <- add(r, features.cmeans.10.bigrams)
   r <- add(r, features.cmeans.15.bigrams)
   r <- add(r, features.cmeans.20.bigrams)
   return(r)
 }
-
 
 # 2016 data set
 features.2016 <- features[headlines$publish_date$year + 1900 == 2016, ]
@@ -246,10 +222,10 @@ pca$features.nonscaled.pc.choice <- 1390
 pca$features.2016.pca.summary <- summary(pca$features.2016.pca)
 pca$features.2016.pc.choice <- 919
 
-# Sampling data to develop solution - only 10% of rows - comment to have full results
-set.seed(42);
-features.sample <- features[sample(1:nrow(features), nrow(features) * 0.08, replace = FALSE),]
-r.sample <- run_analysis(features.sample, headlines, pca$features.nonscaled.pc.choice, FALSE, pca$features.nonscaled.pca)
+# Sampling data to develop solution - only 10% of rows
+# set.seed(42);
+# features.sample <- features[sample(1:nrow(features), nrow(features) * 0.1, replace = FALSE),]
+# r.sample <- run_analysis(features.sample, headlines, pca$features.nonscaled.pc.choice, FALSE, pca$features.nonscaled.pca)
 
 # Analyze complete set non scaled
 r.nonscaled <- run_analysis(features, headlines, pca$features.nonscaled.pc.choice, FALSE, pca$features.nonscaled.pca)
@@ -295,7 +271,7 @@ graph.sil.data <- c(graph.kmeans.nscaled.sil, graph.kmeans.scaled.sil,
 
 graph.sil.keys <- rep(c('kmeans - non scaled', 'kmeans - scaled', 
                         'kmedians - non scaled', 'kmedians - scaled',
-                        'fuzzy cmeans - scaled', 'fuzzy cmeans - non scaled'), times=1, each=4)
+                        'fuzzy cmeans - non scaled', 'fuzzy cmeans - scaled'), times=1, each=4)
 
 
 
@@ -308,9 +284,10 @@ g <- g + theme(plot.title = element_text(hjust = 0.5, size = 18),
                axis.title = element_text(size=16),
                legend.text = element_text(size=12),
                legend.position = "bottom")
+# Generate graph
 g
 
-# Quadractic error graph
+# Quadractic error calculation
 get_kmeans_error_data <- function(data) {
   totss <- c(data$features.kmeans.5$totss, data$features.kmeans.10$totss,
                                   data$features.kmeans.15$totss, data$features.kmeans.20$totss)
@@ -323,39 +300,14 @@ get_kmeans_error_data <- function(data) {
 }
 
 get_kcca_error_data <- function(data) {
-  totss <- c(data$features.kmeans.5$totss, data$features.kmeans.10$totss,
-             data$features.kmeans.15$totss, data$features.kmeans.20$totss)
-  betweenss <- c(data$features.kmeans.5$betweenss, data$features.kmeans.10$betweenss,
-                 data$features.kmeans.15$betweenss, data$features.kmeans.20$betweenss)
   withinss <- c(info(data$features.kmedians.5, "distsum"), info(data$features.kmedians.10, "distsum"),
                 info(data$features.kmedians.15, "distsum"), info(data$features.kmedians.20, "distsum"))
-  betss_div_totss <- betweenss / totss
+  betss_div_totss <- 0
   return(data.frame(betss_div_totss, withinss ))
 }
 
 graph.kmeans.nscaled.error <- get_kmeans_error_data(r.nonscaled)
 graph.kmeans.scaled.error  <- get_kmeans_error_data(r.scaled)
 
-graph.kmeans.nscaled.totss <- c(r.nonscaled$features.kmeans.5$totss, r.nonscaled$features.kmeans.10$totss,
-                                r.nonscaled$features.kmeans.15$totss, r.nonscaled$features.kmeans.20$totss)
-graph.kmeans.nscaled.betweenss <- c(r.nonscaled$features.kmeans.5$betweenss, r.nonscaled$features.kmeans.10$betweenss,
-                                    r.nonscaled$features.kmeans.15$betweenss, r.nonscaled$features.kmeans.20$betweenss)
-graph.kmeans.nscaled.withinss <- c(r.nonscaled$features.kmeans.5$tot.withinss, r.nonscaled$features.kmeans.10$tot.withinss,
-                                    r.nonscaled$features.kmeans.15$tot.withinss, r.nonscaled$features.kmeans.20$tot.withinss)
-graph.kmeans.nscaled.betss_div_totss <- graph.kmeans.nscaled.betweenss / graph.kmeans.nscaled.totss
-
-
-
-graph.kmeans.scaled.totss <- c(r.scaled$features.kmeans.5$totss, r.scaled$features.kmeans.10$totss,
-                                r.scaled$features.kmeans.15$totss, r.scaled$features.kmeans.20$totss)
-graph.kmeans.scaled.betweenss <- c(r.scaled$features.kmeans.5$tot.betweenss, r.scaled$features.kmeans.10$tot.betweenss,
-                                    r.scaled$features.kmeans.15$tot.betweenss, r.scaled$features.kmeans.20$tot.betweenss)
-
-graph.kmedians.nscaled.totss <- c(info(r.scaled$features.kmedians.5, "distsum"), info(r.scaled$features.kmedians.5, "distsum"),
-                                  info(r.scaled$features.kmedians.5, "distsum"), info(r.scaled$features.kmedians.5, "distsum"))
-graph.kmedians.nscaled.betweenss <- c(r.nonscaled$features.kmeans.5$tot.betweenss, r.nonscaled$features.kmeans.10$tot.betweenss,
-                                    r.nonscaled$features.kmeans.15$tot.betweenss, r.nonscaled$features.kmeans.20$tot.betweenss)
-
-
-
-info(r.scaled$features.kmedians.5, "distsum")
+graph.kmedians.nscaled.error <- get_kcca_error_data(r.nonscaled)
+graph.kmedians.nscaled.error <- get_kcca_error_data(r.scaled)
